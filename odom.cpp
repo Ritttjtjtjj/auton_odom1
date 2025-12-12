@@ -74,6 +74,8 @@ void Odom::driveTo(double targetX, double targetY, double targetHeadingDeg, doub
     drivePID.reset();
     turnPID.reset();
 
+    double targetHeadingRad = targetHeadingDeg * PI_VAL / 180.0;
+    
     std::uint32_t startMs = pros::millis();
     while (true) {
         update();
@@ -82,8 +84,17 @@ void Odom::driveTo(double targetX, double targetY, double targetHeadingDeg, doub
         double dy = targetY - yPos;
         double distanceError = std::sqrt(dx*dx + dy*dy);
 
+        // Blend between facing the target point (when far) and final heading (when close)
         double angleToTarget = std::atan2(dy, dx);
-        double headingError = angleToTarget - headingRad;
+        
+        // Start transitioning to final heading when within 8 inches
+        double transitionDistance = 8.0;
+        double blendFactor = std::min(1.0, distanceError / transitionDistance);
+        
+        // When far: use angleToTarget, When close: use targetHeadingRad
+        double desiredHeading = blendFactor * angleToTarget + (1.0 - blendFactor) * targetHeadingRad;
+        
+        double headingError = desiredHeading - headingRad;
         while (headingError >  PI_VAL) headingError -= 2.0 * PI_VAL;
         while (headingError < -PI_VAL) headingError += 2.0 * PI_VAL;
 
@@ -168,7 +179,7 @@ void Odom::curveTo(double x1, double y1,   // control (mid) point
 }
 
 void Odom::pointTurn(double targetDeg, double maxTimeSeconds) {
-    // Use the global IMU from config.hpp (no longer creating a new one here)
+    // Use the global IMU from config.hpp
 
     PID turnPID(4.0, 1.0, 0.5, MAX_POWER, 300);
     turnPID.reset();
