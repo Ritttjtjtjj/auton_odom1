@@ -21,7 +21,7 @@ void runMatchAuton() {
     // intakeBottom.move(-1000);
     // odom.driveTo(-74.659, 56.111,19.9, 0.7);
     odom.reset(0,0,0);
-    odom.pointTurn(290,2.5);
+    odom.pointTurn(90,2.5);
     
     
     
